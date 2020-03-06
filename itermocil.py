@@ -9,8 +9,7 @@ import yaml
 
 from math import ceil
 
-
-__version__ = '0.2.2'
+__version__ = '0.2.2-sam'
 
 
 class Itermocil(object):
@@ -65,9 +64,11 @@ class Itermocil(object):
         firstprofile = "default"
         try:
             fw = self.parsed_config["windows"][0]
-            firstprofile = fw.get("profile",firstprofile)
-            if "panes" in fw and len(fw["panes"]) > 0 and type(fw["panes"][0]) == dict:
-                firstprofile = fw["panes"][0].get("profile",firstprofile)
+            firstprofile = fw.get("profile", firstprofile)
+            if firstprofile == "default" and \
+               "panes" in fw and \
+               len(fw["panes"]) > 0 and type(fw["panes"][0]) == dict:
+                firstprofile = fw["panes"][0].get("profile", firstprofile)
         except:
             pass
         # If we need to open a new window, then add necessary commands
@@ -75,9 +76,12 @@ class Itermocil(object):
         if not self.here:
             if self.new_iterm:
                 ps = "default profile" if firstprofile == "default" else "profile \"%s\"" % firstprofile
-                self.applescript.append('tell current window')
-                self.applescript.append('create tab with %s' % ps)
-                self.applescript.append('end tell')
+                self.applescript.append('-- create a fresh iTerm window')
+                self.applescript.append('set win to create window with {s}'.format(s=ps))
+                self.applescript.append('select win')
+                #self.applescript.append('tell current window')
+                #self.applescript.append('create tab with {s}'.format(s=ps))
+                #self.applescript.append('end tell')
                 # self.applescript.append('create window with default profile')
             else:
                 self.applescript.append('delay 0.3')
@@ -165,7 +169,7 @@ class Itermocil(object):
             generating a version for old iTerm.
         """
 
-        def create_pane(parent, child, split="vertical",profile="default"):
+        def create_pane(parent, child, split="vertical", profile="default"):
             # handle special case
             if profile == "":
                 ps = "same profile"
@@ -176,7 +180,7 @@ class Itermocil(object):
             return (''' tell pane_{pp}
                             set pane_{cp} to (split {o}ly with {ps})
                         end tell
-                    '''.format(pp=parent, cp=child, o=split,ps=ps))
+                    '''.format(pp=parent, cp=child, o=split, ps=ps))
 
         # Link a variable to the current window.
         self.applescript.append("set pane_1 to (current session of current window)")
@@ -193,56 +197,56 @@ class Itermocil(object):
         # 'even-horizontal' layouts just split vertically across the screen
         if layout == 'even-horizontal':
 
-            for p in range(2, num_panes+1):
-                self.applescript.append(create_pane(p-1, p, "vertical",profile=profiles[p-1]))
+            for p in range(2, num_panes + 1):
+                self.applescript.append(create_pane(p - 1, p, "vertical", profile=profiles[p - 1]))
 
         # 'even-vertical' layouts just split horizontally down the screen
         elif layout == 'even-vertical':
 
-            for p in range(2, num_panes+1):
-                self.applescript.append(create_pane(p-1, p, "horizontal",profile=profiles[p-1]))
+            for p in range(2, num_panes + 1):
+                self.applescript.append(create_pane(p - 1, p, "horizontal", profile=profiles[p - 1]))
 
         # 'main-vertical' layouts have one left pane that is full height,
         # and then split the remaining panes horizontally down the right
         elif layout == 'main-vertical':
 
-            self.applescript.append(create_pane(1, 2, "vertical",profile=profiles[1]))
-            for p in range(3, num_panes+1):
-                self.applescript.append(create_pane(p-1, p, "horizontal",profile=profiles[p-1]))
+            self.applescript.append(create_pane(1, 2, "vertical", profile=profiles[1]))
+            for p in range(3, num_panes + 1):
+                self.applescript.append(create_pane(p - 1, p, "horizontal", profile=profiles[p - 1]))
 
         # 'main-vertical-flipped' layouts have one right pane that is full height,
         # and then split the remaining panes horizontally down the left
         elif layout == 'main-vertical-flipped':
 
-            self.applescript.append(create_pane(1, num_panes, "vertical",profile=profiles[1]))
+            self.applescript.append(create_pane(1, num_panes, "vertical", profile=profiles[1]))
             for p in range(2, num_panes):
-                self.applescript.append(create_pane(p-1, p, "horizontal",profile=profiles[p-1]))
+                self.applescript.append(create_pane(p - 1, p, "horizontal", profile=profiles[p - 1]))
 
         # 'main-horizontal' layouts have one left pane that is full height,
         # and then split the remaining panes horizontally down the right
         elif layout == 'main-horizontal':
 
-            self.applescript.append(create_pane(1, 2, "horizontal",profile=profiles[1]))
-            for p in range(3, num_panes+1):
-                self.applescript.append(create_pane(p-1, p, "vertical",profile=profiles[p-1]))
+            self.applescript.append(create_pane(1, 2, "horizontal", profile=profiles[1]))
+            for p in range(3, num_panes + 1):
+                self.applescript.append(create_pane(p - 1, p, "vertical", profile=profiles[p - 1]))
 
         # 'double-main-horizontal' layouts have two left panes that are full height,
         # and then split the remaining panes horizontally down the right
         elif layout == 'double-main-horizontal':
 
-            self.applescript.append(create_pane(1, num_panes-1, "horizontal",profile=profiles[1]))
-            self.applescript.append(create_pane(num_panes-1, num_panes, "vertical",profile=profiles[-1]))
-            for p in range(2, num_panes-1):
-                self.applescript.append(create_pane(p-1, p, "vertical",profile=profiles[p-1]))
+            self.applescript.append(create_pane(1, num_panes - 1, "horizontal", profile=profiles[1]))
+            self.applescript.append(create_pane(num_panes - 1, num_panes, "vertical", profile=profiles[-1]))
+            for p in range(2, num_panes - 1):
+                self.applescript.append(create_pane(p - 1, p, "vertical", profile=profiles[p - 1]))
 
         # 'double-main-vertical' layouts have two bottom panes that spllit the width
         # and then split the remaining panes vertically across the top
         elif layout == 'double-main-vertical':
 
-            self.applescript.append(create_pane(1, 2, "vertical",profile=profiles[1]))
-            self.applescript.append(create_pane(2, 3, "vertical",profile=profiles[2]))
-            for p in range(4, num_panes+1):
-                self.applescript.append(create_pane(p-1, p, "horizontal",profile=profiles[p-1]))
+            self.applescript.append(create_pane(1, 2, "vertical", profile=profiles[1]))
+            self.applescript.append(create_pane(2, 3, "vertical", profile=profiles[2]))
+            for p in range(4, num_panes + 1):
+                self.applescript.append(create_pane(p - 1, p, "horizontal", profile=profiles[p - 1]))
 
         # 'tiled' layouts create 2 columns and then however many rows as
         # needed. If there are odd number of panes then the bottom pane
@@ -256,13 +260,13 @@ class Itermocil(object):
             for p in range(0, vertical_splits):
                 pp = (p * 2) + 1
                 cp = pp + 2
-                self.applescript.append(create_pane(pp, cp, "horizontal",profile=profiles[k]))
+                self.applescript.append(create_pane(pp, cp, "horizontal", profile=profiles[pp]))
                 i += 1
 
             for p in range(0, second_columns):
                 pp = (p * 2) + 1
                 cp = pp + 1
-                self.applescript.append(create_pane(pp, cp, "vertical",profile=profiles[k]))
+                self.applescript.append(create_pane(pp, cp, "vertical", profile=profiles[pp]))
                 i += 1
 
         # '3_columns' layouts create 3 columns and then however many rows as
@@ -277,17 +281,17 @@ class Itermocil(object):
             for p in range(0, vertical_splits):
                 pp = (p * 3) + 1
                 cp = pp + 3
-                self.applescript.append(create_pane(pp, cp, "horizontal",profile=profiles[i]))
+                self.applescript.append(create_pane(pp, cp, "horizontal", profile=profiles[i]))
                 i += 1
 
-            for p in range(0, vertical_splits+1):
+            for p in range(0, vertical_splits + 1):
                 pp = (p * 3) + 1
                 for q in range(0, 2):
                     if i >= num_panes:
                         break
                     qp = pp + q
                     cp = pp + 1 + q
-                    self.applescript.append(create_pane(qp, cp, "vertical",profiles[i]))
+                    self.applescript.append(create_pane(qp, cp, "vertical", profiles[i]))
                     i += 1
 
         # Raise an exception if we don't recognise the layout setting.
@@ -316,7 +320,7 @@ class Itermocil(object):
         # 'even-horizontal' layouts just split vertically across the screen
         if layout == 'even-horizontal':
 
-            for p in range(2, num_panes+1):
+            for p in range(2, num_panes + 1):
                 self.applescript.append(prefix + 'keystroke "d" using command down')
 
             # Focus back on the first pane
@@ -325,7 +329,7 @@ class Itermocil(object):
         # 'even-vertical' layouts just split horizontally down the screen
         elif layout == 'even-vertical':
 
-            for p in range(2, num_panes+1):
+            for p in range(2, num_panes + 1):
                 self.applescript.append(prefix + 'keystroke "D" using command down')
 
             # Focus back on the first pane
@@ -336,7 +340,7 @@ class Itermocil(object):
         elif layout == 'main-vertical':
 
             self.applescript.append(prefix + 'keystroke "d" using command down')
-            for p in range(3, num_panes+1):
+            for p in range(3, num_panes + 1):
                 self.applescript.append(prefix + 'keystroke "D" using command down')
 
             # Focus back on the first pane
@@ -351,7 +355,7 @@ class Itermocil(object):
             # Focus back on the first pane
             self.applescript.append(prefix + 'keystroke "[" using command down')
 
-            for p in range(3, num_panes+1):
+            for p in range(3, num_panes + 1):
                 self.applescript.append(prefix + 'keystroke "D" using command down')
 
         # 'main-horizontal' layouts have one left pane  that is full height,
@@ -359,7 +363,7 @@ class Itermocil(object):
         elif layout == 'main-horizontal':
 
             self.applescript.append(prefix + 'keystroke "D" using command down')
-            for p in range(3, num_panes+1):
+            for p in range(3, num_panes + 1):
                 self.applescript.append(prefix + 'keystroke "d" using command down')
 
             # Focus back on the first pane
@@ -421,7 +425,7 @@ class Itermocil(object):
                 self.applescript.append(prefix + 'keystroke "d" using command down')
 
             if num_panes > 3:
-                for p in range(0, num_panes-3):
+                for p in range(0, num_panes - 3):
                     self.applescript.append(prefix + 'keystroke "D" using command down')
 
         # 'double-main-vertical' layouts have two bottom panes that split the width
@@ -433,7 +437,7 @@ class Itermocil(object):
 
             self.applescript.append(prefix + 'keystroke "]" using command down')
             if num_panes > 3:
-                for p in range(0, num_panes-3):
+                for p in range(0, num_panes - 3):
                     self.applescript.append(prefix + 'keystroke "d" using command down')
 
         # Raise an exception if we don't recognise the layout setting.
@@ -457,7 +461,7 @@ class Itermocil(object):
             tell_target = 'pane_%s' % pane
         else:
             # Converts numbers to 2nd, 3rd, 4th format for Applescript
-            ordinal = lambda n: "%d%s" % (n,"tsnrhtdd"[(n/10%10!=1)*(n%10<4)*n%10::4])
+            ordinal = lambda n: "%d%s" % (n, "tsnrhtdd"[(n / 10 % 10 != 1) * (n % 10 < 4) * n % 10::4])
             tell_target = ordinal(pane) + ' session of current terminal'
 
         # Setting the pane name is mercifully the same across both
@@ -544,7 +548,7 @@ class Itermocil(object):
                 window_profile = window['profile']
                 window_profile_spec = True
             else:
-                window_profile = "default" 
+                window_profile = "default"
                 window_profile_spec = False
 
             # Default Behavior: no pane specifies profile and no profile in window => same for panes
@@ -553,26 +557,27 @@ class Itermocil(object):
                 panes_have_profile = True
             else:
                 panes_have_profile = False
-                for p in window.get("panes",[]):
+                for p in window.get("panes", []):
                     if type(p) == dict and "profile" in p:
                         panes_have_profile = True
                         break
 
             if panes_have_profile:
-                paneprofiles = [p.get("profile",window_profile) if type(p) == dict else window_profile for p in window.get("panes",[])]
-            else:                
+                paneprofiles = [p.get("profile", window_profile) if type(p) == dict else window_profile for p in
+                                window.get("panes", [])]
+            else:
                 # empty means same
-                paneprofiles = ["" for p in window.get("panes",[])]
+                paneprofiles = ["" for p in window.get("panes", [])]
 
             if num > 0:
                 # Extract profile of first pane => profile of first tab command
                 if 'panes' in window and len(window["panes"]) > 0 and type(window["panes"][0]) == dict:
-                    firstprofile = window["panes"][0].get("profile",window_profile)
+                    firstprofile = window["panes"][0].get("profile", window_profile)
                 else:
                     firstprofile = window_profile
 
                 # first TAB has been created before this function, so apply window profile
-                ps = "default profile" if firstprofile == "default" else "profile \"%s\"" % firstprofile                
+                ps = "default profile" if firstprofile == "default" else "profile \"%s\"" % firstprofile
                 if self.new_iterm:
                     self.applescript.append('tell current window')
                     self.applescript.append('create tab with %s' % ps)
@@ -610,7 +615,7 @@ class Itermocil(object):
             if 'panes' in window:
 
                 if self.new_iterm:
-                    self.arrange_panes(len(window['panes']),paneprofiles, layout)
+                    self.arrange_panes(len(window['panes']), paneprofiles, layout)
                 else:
                     self.arrange_panes_old_iterm(len(window['panes']), layout)
 
@@ -666,7 +671,6 @@ class Itermocil(object):
 
 
 def main():
-
     parser = argparse.ArgumentParser(
         description='Process a teamocil file natively in iTerm2 (i.e. without tmux).',
         usage='%(prog)s [options] <layout>'
@@ -764,7 +768,6 @@ def main():
             filepath_teamocil = os.path.join(teamocil_dir, layout + ".yml")
             if not os.path.isfile(filepath) and os.path.isfile(filepath_teamocil):
                 filepath = filepath_teamocil
-
 
     # If --edit the try to launch editor and exit
     if args.edit:

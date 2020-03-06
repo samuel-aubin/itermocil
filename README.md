@@ -58,7 +58,7 @@ iTermocil is compatible with all of teamocil's flags, and they all work in the s
 
 ## Configuration
 
-### Session
+### Session (NOT USED)
 
 | Key       | Description
 |-----------|----------------------------
@@ -67,6 +67,7 @@ iTermocil is compatible with all of teamocil's flags, and they all work in the s
 | `pre`     | Command that get executes before all other actions.
 
 ### Windows
+For each element o this array, a new iTerm window will be spawned.
 
 | Key        | Description
 |------------|----------------------------
